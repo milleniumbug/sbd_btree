@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,6 +58,50 @@ public class BTree implements AutoCloseable {
         free_list_nodes = x;
     }
 
+    public static class InvariantNotSatisfied extends RuntimeException {
+
+    }
+
+    private void checkInvariants() {
+        // 1
+        List<Integer> levels = new ArrayList<>();
+        traversal(root, (node, level) -> {
+            if (node.isLeaf()) {
+                levels.add(level);
+            }
+            return level + 1;
+        }, 0);
+        // All the leaves are on the same level equal to h;
+        if (levels.stream().distinct().count() != 1) {
+            throw new InvariantNotSatisfied();
+        }
+        // 2, and 3
+        traversal(root, node -> {
+            long key_count = node.getEntries().stream().filter(x -> x.getKey() != BNode.not_a_key).count();
+            // Each page has at most 2d keys;
+            if (key_count > BNode.d * 2) {
+                throw new InvariantNotSatisfied();
+            }
+            // Each page except the root has at least d keys (the root may have 1 key);
+            if (node.getThisAddress() != root && key_count < BNode.d) {
+                throw new InvariantNotSatisfied();
+            }
+        });
+        // 4
+        traversal(root, node -> {
+            // If a non-leaf page...
+            if (!node.isLeaf()) {
+                // ...has m keys...
+                long key_count = node.getEntries().stream().mapToLong(x -> x.getKey()).filter(x -> x != BNode.not_a_key).count();
+                long child_count = node.getEntries().stream().mapToLong(x -> x.getLeftChild()).filter(x -> x != BNode.not_a_child).count();
+                // then it has m+1 descendants ("children")
+                if (key_count+1 != child_count) {
+                    throw new InvariantNotSatisfied();
+                }
+            }
+        });
+    }
+
     static private BTree testDataBasic() {
         BTree t = new BTree();
         t.free_list_data = 0;
@@ -96,6 +142,32 @@ public class BTree implements AutoCloseable {
         return t;
     }
 
+    static private BTree testDataCompensateBasic() {
+        BTree t = new BTree();
+        t.free_list_data = 0;
+        t.free_list_nodes = 0;
+        final int left_child_size = BNode.d * 2 - 1;
+        final int right_child_size = 2;//BNode.d * 2 - 3;
+        t.access = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, BNode>() {
+            {
+                put(1L, new BNode(Arrays.asList(
+                        new BNode.BNodeElement(30000L, 0L, 2L),
+                        new BNode.BNodeElement(BNode.not_a_key, 0L, 3L)), 1L));
+                put(2L, new BNode(
+                        Stream.concat(
+                                Stream.iterate(20, x -> x + 10).limit(left_child_size).map(x -> new BNode.BNodeElement(x, 0L, BNode.not_a_child)),
+                                Stream.of(new BNode.BNodeElement(BNode.not_a_key, 0L, BNode.not_a_child)))
+                        .collect(Collectors.toList()), 2L));
+                put(3L, new BNode(
+                        Stream.concat(
+                                Stream.iterate(40000L, x -> x + 10).limit(right_child_size).map(x -> new BNode.BNodeElement(x, 0L, BNode.not_a_child)),
+                                Stream.of(new BNode.BNodeElement(BNode.not_a_key, 0L, BNode.not_a_child)))
+                        .collect(Collectors.toList()), 3L));
+            }
+        }));
+        return t;
+    }
+
     private BPath resolve(final long key) {
         BNode root_node = access.lookup(root);
         BPath res = new BPath();
@@ -124,7 +196,7 @@ public class BTree implements AutoCloseable {
     }
 
     public static void main(String[] args) {
-        if (true) {
+        if (false) {
             BTree t = testDataBasic();
             System.out.println(t.resolve(15));
             System.out.println(t.resolve(5));
@@ -135,12 +207,20 @@ public class BTree implements AutoCloseable {
             System.out.println();
             System.out.println(t);
         }
-        if (true) {
+        if (false) {
             BTree t = testDataEmpty();
             for (long i = 1; i <= 2 * BNode.d + 1; ++i) {
                 t.insert(i, "a");
                 System.out.println(t);
             }
+        }
+        if (true) {
+            BTree t = testDataCompensateBasic();
+            System.out.println(t);
+            t.insert(4000L, "a");
+            System.out.println(t);
+            t.insert(5000L, "a");
+            System.out.println(t);
         }
     }
 
@@ -184,15 +264,20 @@ public class BTree implements AutoCloseable {
         Stream<BNodeElement> elements
                 = Stream.of(
                         Stream.of(parent_entries.get(parent_index), new_element),
-                        left.getEntries().stream(),
-                        right.getEntries().stream())
+                        left.getEntriesNoSentinel().stream(),
+                        right.getEntriesNoSentinel().stream())
                 .reduce(Stream.empty(), Stream::concat);
         return tryCompensate(parent, left, right, elements, parent_index);
     }
 
     private boolean tryCompensateInsertBoth(BNode parent, BNode child, BNode.BNodeElement new_element) {
         List<BNode.BNodeElement> parent_entries = parent.getEntries();
-        int parent_index = parent_entries.lastIndexOf(child);
+        Optional<BNodeElement> childentry = parent_entries.stream().filter(x -> x.getLeftChild() == child.getThisAddress()).findAny();
+        if (!childentry.isPresent()) {
+            return false;
+        }
+
+        int parent_index = parent_entries.lastIndexOf(childentry.get());
         if (parent_index > 0) {
             if (tryCompensateInsert(
                     parent,
@@ -217,6 +302,11 @@ public class BTree implements AutoCloseable {
         }
         return false;
     }
+    
+    private void split()
+    {
+        
+    }
 
     private void insertImpl(long key, long value_address, BPath path) {
         BNode node = path.lastComponent();
@@ -233,12 +323,13 @@ public class BTree implements AutoCloseable {
         }
         // compensation
         // currently broken as fuck
-        if (path.hasParent()) {
+        // FOOK THAT
+        /*if (path.hasParent()) {
             BNode.BNodeElement el = new BNode.BNodeElement(key, value_address, BNode.not_a_child);
             if (tryCompensateInsertBoth(path.getParent(), path.lastComponent(), el)) {
                 return;
             }
-        }
+        }*/
         // splitting
     }
 
@@ -257,17 +348,24 @@ public class BTree implements AutoCloseable {
             throw new IllegalArgumentException("trying to remove sentinel");
         }
         BPath path = resolve(key);
-        
+
     }
 
     private void traversal(long rn, Consumer<BNode> f) {
+        traversal(rn, (BNode node, Void seed) -> {
+            f.accept(node);
+            return seed;
+        }, null);
+    }
+
+    private <T> void traversal(long rn, BiFunction<BNode, T, T> f, T seed) {
         BNode n = access.lookup(rn);
-        f.accept(n);
+        T new_seed = f.apply(n, seed);
         n.getEntries().stream()
                 .map(el -> el.getLeftChild())
                 .filter(childkey -> childkey != BNode.not_a_child)
                 .forEach(childkey -> {
-                    traversal(childkey, f);
+                    traversal(childkey, f, new_seed);
                 });
     }
 

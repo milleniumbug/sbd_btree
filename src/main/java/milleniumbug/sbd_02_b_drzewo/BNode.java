@@ -35,9 +35,19 @@ public class BNode {
         this.thisAddress = thisAddress;
     }
     
+    public boolean isLeaf()
+    {
+        return entries.stream().allMatch(x -> x.getLeftChild() == BNode.not_a_child);
+    }
+    
     public final BNodeElement getSentinel()
     {
         return entries.get(entries.size()-1);
+    }
+    
+    public final List<BNodeElement> getEntriesNoSentinel()
+    {
+        return entries.subList(0, entries.size()-1);
     }
 
     public static class BNodeElement implements Comparable<BNodeElement> {
