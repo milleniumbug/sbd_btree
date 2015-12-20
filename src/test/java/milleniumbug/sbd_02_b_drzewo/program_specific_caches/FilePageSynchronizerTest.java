@@ -5,6 +5,8 @@
  */
 package milleniumbug.sbd_02_b_drzewo.program_specific_caches;
 
+import java.io.FileNotFoundException;
+import java.io.RandomAccessFile;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -35,6 +37,13 @@ public class FilePageSynchronizerTest {
     
     @After
     public void tearDown() {
+    }
+    
+    @Test
+    public void basic() throws FileNotFoundException {
+        FilePageSynchronizer filePageSynchronizer = new FilePageSynchronizer(new RandomAccessFile("asdf/asdf_index", "rw"));
+        filePageSynchronizer.flush(0L, new byte[4096]);
+        filePageSynchronizer.load(0L);
     }
     
 }

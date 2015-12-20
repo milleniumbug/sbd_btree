@@ -38,7 +38,7 @@ public class LruCache<K, V> implements Cache<K, V> {
 
     @Override
     public V replace(K key, V value) {
-        return map.replace(key, value);
+        return map.put(key, value);
     }
     
     @Override

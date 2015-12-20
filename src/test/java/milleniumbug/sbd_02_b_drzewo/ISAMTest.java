@@ -40,9 +40,6 @@ public class ISAMTest {
     public void tearDown() {
     }
 
-    /**
-     * Test of find method, of class ISAM.
-     */
     public void testFindData1(ISAM isam) {
         assertEquals(Optional.of("b"), isam.find(1));
         assertEquals(Optional.of("c"), isam.find(5));
@@ -135,7 +132,7 @@ public class ISAMTest {
         isam.erase(Long.MIN_VALUE);
     }
 
-    //@Test
+    @Test
     public void testInsert() {
         ISAM isam = ISAM.testData1();
         isam.insert(3, "z");

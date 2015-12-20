@@ -1,0 +1,8 @@
+Projekt używa pliku Indeksowo-Sekwencyjnego, z modyfikacją do wskaźników na overflow area. 
+
+Plik testowy przyjmuje polecenia w takim samym formacie jak w trybie interaktywnym, tj. plik o zawartości
+
+2
+1337
+wartosc
+

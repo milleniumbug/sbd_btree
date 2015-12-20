@@ -1,6 +1,7 @@
 package milleniumbug.sbd_02_b_drzewo;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,13 +9,18 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import milleniumbug.sbd_02_b_drzewo.generic_caches.Cache;
 import milleniumbug.sbd_02_b_drzewo.generic_caches.MapSynchronizer;
 import milleniumbug.sbd_02_b_drzewo.generic_caches.NoopCache;
+import milleniumbug.sbd_02_b_drzewo.program_specific_caches.FilePageSynchronizer;
+import milleniumbug.sbd_02_b_drzewo.program_specific_caches.IndexCache;
+import milleniumbug.sbd_02_b_drzewo.program_specific_caches.SeqFileCache;
 
 public class ISAM implements AutoCloseable {
 
@@ -25,21 +31,17 @@ public class ISAM implements AutoCloseable {
     @ToString(exclude = {"thisPage"})
     public static class SeqFileRecord implements Comparable<SeqFileRecord> {
 
-        final static public int recordsPerPage = 5;
+        final static public int recordsPerPage = 86;
         final public long thisPage;
         public boolean deleted = false;
         final public long key;
         public String value;
         public long nextPointer = sentinel_max;
 
-        public SeqFileRecord(long this_page, long key, String value) {
+        public SeqFileRecord(long this_page, long key, String value, long nextPointer) {
             this.thisPage = this_page;
             this.key = key;
             this.value = value;
-        }
-
-        public SeqFileRecord(long this_page, long key, String value, long nextPointer) {
-            this(this_page, key, value);
             this.nextPointer = nextPointer;
         }
 
@@ -53,7 +55,7 @@ public class ISAM implements AutoCloseable {
     @ToString(exclude = {"thisPage"})
     public static class IndexRecord implements Comparable<IndexRecord> {
 
-        final static public int recordsPerPage = 5;
+        final static public int recordsPerPage = 256;
         final public long thisPage;
         final public long key;
         public long page;
@@ -72,74 +74,43 @@ public class ISAM implements AutoCloseable {
 
     private class ISAMIterator implements Iterator<SeqFileRecord> {
 
-        private long primary_pointer = 0;
-        private long overflow_pointer = sentinel_max;
-        private int index = 0;
-        private int primary_index = 0;
-        private boolean end = false;
-
-        private List<SeqFileRecord> getPage() {
-            List<SeqFileRecord> lookup;
-            if (isSentinel(overflow_pointer)) {
-                lookup = data.lookup(primary_pointer);
-            } else {
-                lookup = data.lookup(overflow_pointer);
-            }
-            Collections.sort(lookup);
-            return lookup;
-        }
-
-        private <T> int findIf(List<T> list, Predicate<T> pred) {
-            return list.stream()
-                    .filter(pred)
-                    .findFirst()
-                    .map(x -> list.indexOf(x))
-                    .orElse(-1);
-        }
+        private SeqFileRecord currkey;
 
         @Override
         public boolean hasNext() {
-            return !end;
+            return currkey != null;
+        }
+
+        private void getKey(List<SeqFileRecord> lookup) {
+            this.currkey = lookup.stream()
+                    .sorted(Comparator.naturalOrder())
+                    .filter(x -> x.key > currkey.key)
+                    .findFirst()
+                    .get();
         }
 
         @Override
         public SeqFileRecord next() {
-            List<SeqFileRecord> page = getPage();
-
-            SeqFileRecord prev = page.get(index);
-            if (!isSentinel(prev.nextPointer)) {
-                overflow_pointer = prev.nextPointer;
-                primary_index = index;
-                index = findIf(getPage(), x -> x.key > prev.key);
-
+            if (!isSentinel(currkey.nextPointer)) {
+                List<SeqFileRecord> page = data.lookup(currkey.nextPointer);
+                SeqFileRecord prevkey = currkey;
+                getKey(page);
+                return prevkey;
             } else {
-                if (!isSentinel(overflow_pointer)) {
-                    index = primary_index;
-                }
-                overflow_pointer = sentinel_max;
-                index++;
+                SeqFileRecord prevkey = currkey;
+                currkey = null;
+                return prevkey;
             }
-            if (index >= page.size() && isSentinel(overflow_pointer)) {
-                primary_pointer++;
-                index = 0;
-                if (primary_pointer == overflow_area_start_pointer) {
-                    end = true;
-                }
-            }
-            return prev;
         }
 
         ISAMIterator(long key) {
             IndexRecord ir = binarySearchIndex(key);
-            primary_pointer = ir.page;
             List<SeqFileRecord> lookup = data.lookup(ir.page);
-            int res = lookup.indexOf(lookup.stream()
+            this.currkey = lookup.stream()
                     .sorted(Comparator.reverseOrder())
                     .filter(x -> x.key <= key)
                     .findFirst()
-                    .get());
-            index = res;
-            primary_index = index;
+                    .get();
         }
 
         ISAMIterator() {
@@ -151,7 +122,7 @@ public class ISAM implements AutoCloseable {
     private long overflow_area_start_pointer;
     private long overflow_area_end_pointer;
 
-    private final File metadata_file;
+    private File metadata_file;
     private Cache<Long, List<IndexRecord>> index;
     private Cache<Long, List<SeqFileRecord>> data;
 
@@ -227,6 +198,14 @@ public class ISAM implements AutoCloseable {
         data.replace(rec.thisPage, lookup);
     }
 
+    private File getDataFile(File metadata_file) {
+        return new File(metadata_file.getParent(), metadata_file.getName() + "_data");
+    }
+
+    private File getIndexFile(File metadata_file) {
+        return new File(metadata_file.getParent(), metadata_file.getName() + "_index");
+    }
+
     public Optional<String> find(long key) {
         if (isSentinel(key)) {
             return Optional.empty();
@@ -299,6 +278,8 @@ public class ISAM implements AutoCloseable {
     private void reorganize(Cache<Long, List<IndexRecord>> newindex, Cache<Long, List<SeqFileRecord>> newdata) {
         List<SeqFileRecord> datapage = new ArrayList<>();
         List<IndexRecord> indexpage = new ArrayList<>();
+        // mutable long
+        long[] nextdatapage = new long[]{0};
         abstract class Flush {
 
             public long ptr = 0;
@@ -315,8 +296,14 @@ public class ISAM implements AutoCloseable {
         Flush flush_data = new Flush() {
             @Override
             void run() {
-                newdata.replace(ptr, new ArrayList<>(datapage));
                 if (!datapage.isEmpty()) {
+                    // fix the last entry
+                    SeqFileRecord lastentry = datapage.get(datapage.size() - 1);
+                    lastentry = new SeqFileRecord(lastentry.thisPage, lastentry.key, lastentry.value, nextdatapage[0] + 1);
+                    datapage.set(datapage.size() - 1, lastentry);
+                    // rest
+                    newdata.replace(ptr, new ArrayList<>(datapage));
+
                     indexpage.add(new IndexRecord(flush_index.ptr, datapage.get(0).key, ptr));
                     if (indexpage.size() == IndexRecord.recordsPerPage) {
                         flush_index.run();
@@ -333,13 +320,17 @@ public class ISAM implements AutoCloseable {
                 continue;
             }
 
-            datapage.add(new SeqFileRecord(flush_data.ptr, r.key, r.value));
+            datapage.add(new SeqFileRecord(flush_data.ptr, r.key, r.value, flush_data.ptr));
             if (datapage.size() == SeqFileRecord.recordsPerPage) {
                 flush_data.run();
+                nextdatapage[0] = flush_data.ptr;
             }
         }
+        nextdatapage[0] = sentinel_max;
         flush_data.run();
         flush_index.run();
+        newdata.sync();
+        newindex.sync();
 
         index = newindex;
         data = newdata;
@@ -349,17 +340,66 @@ public class ISAM implements AutoCloseable {
     }
 
     public void reorganize() {
-        Cache<Long, List<IndexRecord>> newindex = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, List<IndexRecord>>()));
-        Cache<Long, List<SeqFileRecord>> newdata = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, List<SeqFileRecord>>()));
-        reorganize(newindex, newdata);
+        try {
+            //Cache<Long, List<IndexRecord>> newindex = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, List<IndexRecord>>()));
+            //Cache<Long, List<SeqFileRecord>> newdata = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, List<SeqFileRecord>>()));
+            File f = new File("a");
+            getIndexFile(f).createNewFile();
+            getDataFile(f).createNewFile();
+            Cache<Long, List<IndexRecord>> newindex = new IndexCache(getIndexFile(f));
+            Cache<Long, List<SeqFileRecord>> newdata = new SeqFileCache(getDataFile(f));
+            getDataFile(metadata_file).delete();
+            getIndexFile(metadata_file).delete();
+            getDataFile(f).renameTo(getDataFile(metadata_file));
+            getIndexFile(f).renameTo(getIndexFile(metadata_file));
+            reorganize(newindex, newdata);
+        } catch (IOException ex) {
+            Logger.getLogger(ISAM.class.getName()).log(Level.SEVERE, null, ex);
+            throw new RuntimeException(ex);
+        }
     }
 
-    public static ISAM create(File metadata_file) {
-        return null;
+    public static ISAM create(File metadata_file) throws Exception {
+        try (ISAM isam = new ISAM()) {
+            isam.metadata_file = metadata_file;
+            isam.index_end_pointer = 1;
+            isam.overflow_area_start_pointer = 1;
+            isam.overflow_area_end_pointer = 2;
+            isam.index = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, List<IndexRecord>>() {
+                {
+                    put(0L, new ArrayList<>(Arrays.asList(
+                            new IndexRecord(0, sentinel_min, 0)
+                    )));
+                }
+            }));
+            isam.data = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, List<SeqFileRecord>>() {
+                {
+                    put(0L, new ArrayList<>(Arrays.asList(
+                            new SeqFileRecord(0, sentinel_min, "", 0),
+                            new SeqFileRecord(0, sentinel_max, "", sentinel_max)
+                    )));
+                    put(1L, new ArrayList<>(Arrays.asList()));
+                }
+            }));
+            isam.reorganize();
+        }
+        return new ISAM(metadata_file);
+    }
+
+    private ISAM() {
+        this.metadata_file = null;
     }
 
     public ISAM(File metadata_file) {
-        this.metadata_file = metadata_file;
+        this.metadata_file = Objects.requireNonNull(metadata_file);
+        index = new IndexCache(getIndexFile(metadata_file));
+        data = new SeqFileCache(getDataFile(metadata_file));
+        index_end_pointer = getIndexFile(metadata_file).length() / FilePageSynchronizer.page_size;
+        overflow_area_end_pointer = getDataFile(metadata_file).length() / FilePageSynchronizer.page_size;
+        for(long i = overflow_area_end_pointer-1; i >= 0; --i) {
+            if(data.lookup(i).stream().anyMatch(x -> x.key == sentinel_max))
+                overflow_area_start_pointer = i+1;
+        }
     }
 
     private Iterator<SeqFileRecord> internalIterator(long key) {
@@ -370,11 +410,11 @@ public class ISAM implements AutoCloseable {
     public void close() throws Exception {
         data.close();
         index.close();
-        // TODO: zapis metafile
     }
 
     public static ISAM testData1() {
-        ISAM isam = new ISAM(null);
+        ISAM isam = new ISAM();
+        isam.metadata_file = new File("asdf");
         isam.index_end_pointer = 1;
         isam.overflow_area_start_pointer = 2;
         isam.overflow_area_end_pointer = 3;
@@ -389,21 +429,21 @@ public class ISAM implements AutoCloseable {
         isam.data = new NoopCache<>(new MapSynchronizer<>(new HashMap<Long, List<SeqFileRecord>>() {
             {
                 put(0L, new ArrayList<>(Arrays.asList(
-                        new SeqFileRecord(0, sentinel_min, "a"),
-                        new SeqFileRecord(0, 1, "b"),
+                        new SeqFileRecord(0, sentinel_min, "a", 0),
+                        new SeqFileRecord(0, 1, "b", 0),
                         new SeqFileRecord(0, 5, "c", 2),
-                        new SeqFileRecord(0, 8, "e")
+                        new SeqFileRecord(0, 8, "e", 1)
                 )));
                 put(1L, new ArrayList<>(Arrays.asList(
-                        new SeqFileRecord(1, 10, "f"),
+                        new SeqFileRecord(1, 10, "f", 1),
                         new SeqFileRecord(1, 11, "g", 2),
-                        new SeqFileRecord(1, 21, "j"),
-                        new SeqFileRecord(1, sentinel_max, "k")
+                        new SeqFileRecord(1, 21, "j", 1),
+                        new SeqFileRecord(1, sentinel_max, "k", sentinel_max)
                 )));
                 put(2L, new ArrayList<>(Arrays.asList(
-                        new SeqFileRecord(2, 7, "d"),
+                        new SeqFileRecord(2, 7, "d", 0),
                         new SeqFileRecord(2, 12, "h", 2),
-                        new SeqFileRecord(2, 13, "i")
+                        new SeqFileRecord(2, 13, "i", 1)
                 )));
             }
         }));
@@ -412,6 +452,10 @@ public class ISAM implements AutoCloseable {
 
     public static void main(String[] args) {
         ISAM isam = testData1();
+        for (Iterator<SeqFileRecord> it = isam.internalIterator(sentinel_min); it.hasNext();) {
+            SeqFileRecord rec = it.next();
+            System.out.println(rec);
+        }
         for (Iterator<SeqFileRecord> it = isam.internalIterator(10); it.hasNext();) {
             SeqFileRecord rec = it.next();
             System.out.println(rec);

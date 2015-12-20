@@ -19,7 +19,7 @@ public class FilePageSynchronizer implements CacheSynchronizer<Long, byte[]>, Au
     }
 
     private long getPageNumber(long pos) {
-        return pos / page_size * page_size;
+        return pos * page_size;
     }
 
     @Override
