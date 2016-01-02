@@ -193,7 +193,9 @@ public class ISAM implements AutoCloseable {
 
     private void replace(SeqFileRecord rec) {
         List<SeqFileRecord> lookup = data.lookup(rec.thisPage);
-        lookup.set(Collections.binarySearch(lookup, rec), rec);
+        int index = lookup.indexOf(rec);
+        assert index != -1;
+        lookup.set(index, rec);
         Collections.sort(lookup);
         data.replace(rec.thisPage, lookup);
     }
