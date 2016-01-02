@@ -51,7 +51,7 @@ public class ISAMTest2 {
         new File("test1_index").delete();
         new File("test1_data").delete();
         try (ISAM isam = ISAM.create(new File("test1"))) {
-            List<Long> keys = LongStream.range(0, 512).boxed().collect(Collectors.toList());
+            List<Long> keys = LongStream.range(0, 50000).boxed().collect(Collectors.toList());
             Collections.shuffle(keys, new Random(0));
             for (Long key : keys) {
                 isam.insert(key, "asdf");

@@ -291,7 +291,8 @@ public class ISAM implements AutoCloseable {
         Flush flush_index = new Flush() {
             @Override
             void run() {
-                newindex.replace(ptr, indexpage);
+                newindex.replace(ptr, new ArrayList<>(indexpage));
+                indexpage.clear();
                 ptr++;
             }
         };
@@ -305,8 +306,9 @@ public class ISAM implements AutoCloseable {
                     datapage.set(datapage.size() - 1, lastentry);
                     // rest
                     newdata.replace(ptr, new ArrayList<>(datapage));
-
+                    
                     indexpage.add(new IndexRecord(flush_index.ptr, datapage.get(0).key, ptr));
+                    assert indexpage.size() <= IndexRecord.recordsPerPage;
                     if (indexpage.size() == IndexRecord.recordsPerPage) {
                         flush_index.run();
                     }
@@ -398,10 +400,9 @@ public class ISAM implements AutoCloseable {
         data = new SeqFileCache(getDataFile(metadata_file));
         index_end_pointer = getIndexFile(metadata_file).length() / FilePageSynchronizer.page_size;
         overflow_area_end_pointer = getDataFile(metadata_file).length() / FilePageSynchronizer.page_size;
-        for(long i = overflow_area_end_pointer-1; i >= 0; --i) {
-            if(data.lookup(i).stream().anyMatch(x -> x.key == sentinel_max))
-                overflow_area_start_pointer = i+1;
-        }
+        final long index_entries_count = (index_end_pointer-1) * IndexRecord.recordsPerPage
+                + index.lookup(index_end_pointer-1).size();
+        overflow_area_start_pointer = index_entries_count;
     }
 
     private Iterator<SeqFileRecord> internalIterator(long key) {
