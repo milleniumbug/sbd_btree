@@ -352,11 +352,11 @@ public class ISAM implements AutoCloseable {
             getDataFile(f).createNewFile();
             Cache<Long, List<IndexRecord>> newindex = new IndexCache(getIndexFile(f));
             Cache<Long, List<SeqFileRecord>> newdata = new SeqFileCache(getDataFile(f));
+            reorganize(newindex, newdata);
             getDataFile(metadata_file).delete();
             getIndexFile(metadata_file).delete();
             getDataFile(f).renameTo(getDataFile(metadata_file));
             getIndexFile(f).renameTo(getIndexFile(metadata_file));
-            reorganize(newindex, newdata);
         } catch (IOException ex) {
             Logger.getLogger(ISAM.class.getName()).log(Level.SEVERE, null, ex);
             throw new RuntimeException(ex);
