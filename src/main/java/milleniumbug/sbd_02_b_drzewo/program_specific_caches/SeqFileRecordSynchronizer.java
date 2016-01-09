@@ -23,8 +23,10 @@ public class SeqFileRecordSynchronizer extends SerializerSynchronizer<List<ISAM.
     @Override
     public List<ISAM.SeqFileRecord> deserialize(long pos, byte[] buffer) {
         try {
-            DataInputStream reader = new DataInputStream(new ByteArrayInputStream(buffer));
             List<ISAM.SeqFileRecord> res = new ArrayList<>(ISAM.SeqFileRecord.recordsPerPage);
+            if(buffer == null)
+                return res;
+            DataInputStream reader = new DataInputStream(new ByteArrayInputStream(buffer));
             for(int i = 0; i < ISAM.SeqFileRecord.recordsPerPage; ++i) {
                 boolean deleted = reader.readBoolean();
                 long key = reader.readLong();

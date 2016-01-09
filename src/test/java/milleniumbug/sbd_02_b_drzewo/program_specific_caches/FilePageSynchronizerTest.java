@@ -41,9 +41,9 @@ public class FilePageSynchronizerTest {
     
     @Test
     public void basic() throws FileNotFoundException {
-        FilePageSynchronizer filePageSynchronizer = new FilePageSynchronizer(new RandomAccessFile("asdf/asdf_index", "rw"));
+        FilePageSynchronizer filePageSynchronizer = new FilePageSynchronizer(new RandomAccessFile("asdf_index", "rw"));
         filePageSynchronizer.flush(0L, new byte[4096]);
         filePageSynchronizer.load(0L);
-    }
-    
+        assertArrayEquals(filePageSynchronizer.load(2L), null);
+    }   
 }

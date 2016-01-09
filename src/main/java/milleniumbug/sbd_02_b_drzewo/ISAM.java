@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.EqualsAndHashCode;
@@ -340,7 +341,7 @@ public class ISAM implements AutoCloseable {
         data = newdata;
         index_end_pointer = flush_index.ptr;
         overflow_area_start_pointer = flush_data.ptr;
-        overflow_area_end_pointer = flush_data.ptr;
+        overflow_area_end_pointer = flush_data.ptr + 1;
     }
 
     public void reorganize() {

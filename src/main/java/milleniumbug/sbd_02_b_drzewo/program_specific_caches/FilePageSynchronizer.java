@@ -29,6 +29,8 @@ public class FilePageSynchronizer implements CacheSynchronizer<Long, byte[]>, Au
             byte[] buffer = new byte[page_size];
             int read = file.read(buffer);
             assert read == -1 || read == page_size;
+            if(read == -1)
+                return null;
             return buffer;
         } catch (IOException ex) {
             Logger.getLogger(FilePageSynchronizer.class.getName()).log(Level.SEVERE, null, ex);
