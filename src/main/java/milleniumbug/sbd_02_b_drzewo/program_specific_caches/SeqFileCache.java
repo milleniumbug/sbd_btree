@@ -9,4 +9,8 @@ public class SeqFileCache extends ISAMCache<List<ISAM.SeqFileRecord>, SeqFileRec
     public SeqFileCache(File f) {
         super(f, x -> new SeqFileRecordSynchronizer(x));
     }
+    
+    public SeqFileCache(File f, int size) {
+        super(f, x -> new SeqFileRecordSynchronizer(x), size);
+    }
 }

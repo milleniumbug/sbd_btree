@@ -1,4 +1,8 @@
-Projekt używa pliku Indeksowo-Sekwencyjnego, z modyfikacją do wskaźników na overflow area. 
+Projekt używa pliku indeksowo-sekwencyjnego, z modyfikacją do wskaźników na overflow area.
+
+Każda baza składa się z dwóch plików:
+- `x_index` - tutaj jest plik indeksu
+- `x_data` - gdzie zachowane jest primary area i overflow area
 
 Plik testowy przyjmuje polecenia w takim samym formacie jak w trybie interaktywnym, tj. plik o zawartości
 
@@ -6,3 +10,8 @@ Plik testowy przyjmuje polecenia w takim samym formacie jak w trybie interaktywn
 1337
 wartosc
 
+dodaje do bazy wpis (1337, "wartosc")
+
+Program można uruchomić z użyciem
+java -jar ISAM.jar C nazwa_bazy
+java -jar ISAM.jar O nazwa_bazy 

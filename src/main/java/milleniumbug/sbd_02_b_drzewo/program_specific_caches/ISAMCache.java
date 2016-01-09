@@ -15,15 +15,18 @@ class ISAMCache<T, Synchronizer> implements Cache<Long, T> {
     private final CounterSynchronizer<Long, byte[]> counter;
     private final Cache<Long, T> cache;
 
-
-    public ISAMCache(File f, Function<CacheSynchronizer<Long, byte[]>, CacheSynchronizer<Long, T>> synchronizer_provider) {
+    public ISAMCache(File f, Function<CacheSynchronizer<Long, byte[]>, CacheSynchronizer<Long, T>> synchronizer_provider, int size) {
         try {
             counter = new CounterSynchronizer<>(new FilePageSynchronizer(new RandomAccessFile(f, "rw")));
-            cache = new LruCache<>(1024, synchronizer_provider.apply(counter));
+            cache = new LruCache<>(size, synchronizer_provider.apply(counter));
         } catch (FileNotFoundException ex) {
             Logger.getLogger(ISAMCache.class.getName()).log(Level.SEVERE, null, ex);
             throw new RuntimeException(ex);
         }
+    }
+
+    public ISAMCache(File f, Function<CacheSynchronizer<Long, byte[]>, CacheSynchronizer<Long, T>> synchronizer_provider) {
+        this(f, synchronizer_provider, 1024);
     }
 
     public long writeCount() {

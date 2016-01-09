@@ -9,4 +9,8 @@ public class IndexCache extends ISAMCache<List<ISAM.IndexRecord>, IndexRecordSyn
     public IndexCache(File f) {
         super(f, x -> new IndexRecordSynchronizer(x));
     }
+    
+    public IndexCache(File f, int size) {
+        super(f, x -> new IndexRecordSynchronizer(x), size);
+    }
 }

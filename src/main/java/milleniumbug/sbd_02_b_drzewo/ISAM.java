@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
@@ -73,7 +74,7 @@ public class ISAM implements AutoCloseable {
         }
     }
 
-    private class ISAMIterator implements Iterator<SeqFileRecord> {
+    private class ISAMRawIterator implements Iterator<SeqFileRecord> {
 
         private SeqFileRecord currkey;
 
@@ -104,7 +105,7 @@ public class ISAM implements AutoCloseable {
             }
         }
 
-        ISAMIterator(long key) {
+        ISAMRawIterator(long key) {
             IndexRecord ir = binarySearchIndex(key);
             List<SeqFileRecord> lookup = data.lookup(ir.page);
             this.currkey = lookup.stream()
@@ -114,8 +115,49 @@ public class ISAM implements AutoCloseable {
                     .get();
         }
 
-        ISAMIterator() {
+        ISAMRawIterator() {
             this(sentinel_min);
+        }
+    }
+
+    public class ISAMIterator implements Iterator<Map.Entry<Long, String>> {
+
+        final ISAMRawIterator underlying;
+
+        @Override
+        public boolean hasNext() {
+            return underlying.hasNext();
+        }
+
+        @Override
+        public Map.Entry<Long, String> next() {
+            SeqFileRecord n = underlying.next();
+            return new Map.Entry<Long, String>() {
+
+                Long key = n.key;
+                String value = n.value;
+
+                @Override
+                public Long getKey() {
+                    return key;
+                }
+
+                @Override
+                public String getValue() {
+                    return value;
+                }
+
+                @Override
+                public String setValue(String v) {
+                    value = v;
+                    return v;
+                }
+
+            };
+        }
+
+        ISAMIterator(ISAMRawIterator iterator) {
+            underlying = iterator;
         }
     }
 
@@ -134,8 +176,8 @@ public class ISAM implements AutoCloseable {
     private boolean needToReorganize() {
         long primary_area_size = overflow_area_start_pointer;
         long overflow_area_size = overflow_area_end_pointer - overflow_area_start_pointer;
-        // TODO: logarithm instead of square root
-        return overflow_area_size * overflow_area_size >= primary_area_size;
+        // TODO: stop doing float arithmetic
+        return overflow_area_size >= Math.log10(primary_area_size);
     }
 
     private IndexRecord binarySearchIndex(long key, long page_start, long page_end) {
@@ -307,7 +349,7 @@ public class ISAM implements AutoCloseable {
                     datapage.set(datapage.size() - 1, lastentry);
                     // rest
                     newdata.replace(ptr, new ArrayList<>(datapage));
-                    
+
                     indexpage.add(new IndexRecord(flush_index.ptr, datapage.get(0).key, ptr));
                     assert indexpage.size() <= IndexRecord.recordsPerPage;
                     if (indexpage.size() == IndexRecord.recordsPerPage) {
@@ -397,17 +439,37 @@ public class ISAM implements AutoCloseable {
 
     public ISAM(File metadata_file) {
         this.metadata_file = Objects.requireNonNull(metadata_file);
-        index = new IndexCache(getIndexFile(metadata_file));
-        data = new SeqFileCache(getDataFile(metadata_file));
+        index = new IndexCache(getIndexFile(metadata_file), 32);
+        data = new SeqFileCache(getDataFile(metadata_file), 256);
         index_end_pointer = getIndexFile(metadata_file).length() / FilePageSynchronizer.page_size;
         overflow_area_end_pointer = getDataFile(metadata_file).length() / FilePageSynchronizer.page_size;
-        final long index_entries_count = (index_end_pointer-1) * IndexRecord.recordsPerPage
-                + index.lookup(index_end_pointer-1).size();
+        final long index_entries_count = (index_end_pointer - 1) * IndexRecord.recordsPerPage
+                + index.lookup(index_end_pointer - 1).size();
         overflow_area_start_pointer = index_entries_count;
     }
 
-    private Iterator<SeqFileRecord> internalIterator(long key) {
-        return new ISAMIterator(key);
+    public long writeCount() {
+        try {
+            IndexCache i = (IndexCache) index;
+            SeqFileCache d = (SeqFileCache) data;
+            return i.writeCount() + d.writeCount();
+        } catch (ClassCastException ex) {
+            return 0;
+        }
+    }
+
+    public long readCount() {
+        try {
+            IndexCache i = (IndexCache) index;
+            SeqFileCache d = (SeqFileCache) data;
+            return i.readCount() + d.readCount();
+        } catch (ClassCastException ex) {
+            return 0;
+        }
+    }
+
+    private ISAMRawIterator internalIterator(long key) {
+        return new ISAMRawIterator(key);
     }
 
     @Override
@@ -479,5 +541,11 @@ public class ISAM implements AutoCloseable {
             System.out.println("Dane strona " + i + " " + (i >= overflow_area_start_pointer ? "OVERFLOW AREA" : ""));
             data.lookup(i).stream().forEachOrdered(x -> System.out.println(x));
         }
+    }
+
+    public ISAMIterator iterator() {
+        ISAMRawIterator it = internalIterator(sentinel_min);
+        it.next();
+        return new ISAMIterator(it);
     }
 }
