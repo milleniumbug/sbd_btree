@@ -1,8 +1,37 @@
-Projekt używa pliku indeksowo-sekwencyjnego, z modyfikacją do wskaźników na overflow area.
+Projekt jest implementacją pliku indeksowo-sekwencyjnego.
 
 Każda baza składa się z dwóch plików:
-- `x_index` - tutaj jest plik indeksu
-- `x_data` - gdzie zachowane jest primary area i overflow area
+- `nazwabazy_index` - tutaj jest plik indeksu.
+- `nazwabazy_data` - gdzie zachowane jest primary area i overflow area
+
+Pojedyncza strona w pliku z danymi zawiera 86 wpisów.
+Pojedyncza strona w pliku indeksu zawiera 512 wpisów.
+
+Aby nie odczytywać stron z dysku co każdą operacje, wprowadzona jest pamięć podręczna dla stron o stałym rozmiarze.
+W przypadku wypełnienia pamięci podręcznej usuwana jest najdawniej użyta strona (LRU cache)
+
+Wskaźniki na overflow area są zastąpione wskaźnikami na kolejny element - upraszcza to kod iteracji oraz wstawiania kolejnego elementu
+
+```
+klucz     wskaźnik na overflow area    wskaźnik na następny element
+Strona 0
+01        X                            0
+02        3                            3
+05        X                            1
+Strona 1
+10        X                            1
+11        X                            1
+13        3                            3
+Strona 2
+21        X                            2
+24        X                            2
+27        X                            X
+Strona 3 (overflow area)
+04        0                            0
+14        2                            2
+```
+
+W ten sposób każdy wpis mogę traktować jak wpis w liście łączonej.
 
 Plik testowy przyjmuje polecenia w takim samym formacie jak w trybie interaktywnym, tj. plik o zawartości
 
@@ -12,6 +41,24 @@ wartosc
 
 dodaje do bazy wpis (1337, "wartosc")
 
-Program można uruchomić z użyciem
+Uruchomienie programu:
+
+utwórz bazę, a następnie ją otwórz
 java -jar ISAM.jar C nazwa_bazy
+
+otwórz istniejącą bazę
 java -jar ISAM.jar O nazwa_bazy 
+
+Eksperyment:
+
+Wpływ momentów realokacji na ilość odwołań do dysku (dodawanie n rekordów)
+Pamięć podręczna na 32 strony indeksów i 256 stron danych
+           Reorganizuj gdy           Reorganizuj gdy         Reorganizuj gdy
+n          o >= log10(p)             o >= sqrt(p)            o >= p/2
+200000    
+400000    
+800000    
+1600000   
+3200000   
+
+notacja (x+y) oznacza (odczytów+zapisów)
