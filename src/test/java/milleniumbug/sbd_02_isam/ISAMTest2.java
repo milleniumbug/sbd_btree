@@ -55,7 +55,7 @@ public class ISAMTest2 {
             System.out.print(size);
             runWithPrintReadWriteCounts(isam, i -> {
                 List<Long> keys = LongStream.range(0, size).boxed().collect(Collectors.toList());
-                Collections.shuffle(keys, new Random(0));
+                //Collections.shuffle(keys, new Random(0));
                 for (Long key : keys) {
                     i.insert(key, "asdf");
                 }
@@ -76,11 +76,12 @@ public class ISAMTest2 {
 
     @Test
     public void testInsertBiggerData() throws Exception {
-        testInsertBiggerData(6250, "test1");
-        testInsertBiggerData(12500, "test2");
-        testInsertBiggerData(25000, "test3");
-        testInsertBiggerData(50000, "test4");
-        testInsertBiggerData(100000, "test5");
+        testInsertBiggerData(200000, "test4");
+        testInsertBiggerData(25000, "test1");
+        testInsertBiggerData(50000, "test2");
+        testInsertBiggerData(100000, "test3");
+        
+        testInsertBiggerData(400000, "test5");
     }
 
 }

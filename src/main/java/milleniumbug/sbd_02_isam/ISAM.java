@@ -87,11 +87,9 @@ public class ISAM implements AutoCloseable {
         private void getKey(List<SeqFileRecord> lookup) {
             assert lookup instanceof RandomAccess;
             lookup.sort(Comparator.naturalOrder());
-            for(int i = 0; i < lookup.size(); ++i)
-            {
+            for (int i = 0; i < lookup.size(); ++i) {
                 SeqFileRecord x = lookup.get(i);
-                if(x.key > currkey.key)
-                {
+                if (x.key > currkey.key) {
                     currkey = x;
                     return;
                 }
@@ -188,41 +186,30 @@ public class ISAM implements AutoCloseable {
         return overflow_area_size * overflow_area_size > primary_area_size;
     }
 
-    private IndexRecord binarySearchIndex(long key, long page_start, long page_end) {
-        if (page_start == page_end) {
-            return null;
-        }
-        List<IndexRecord> page = index.lookup(page_start);
+    // range is [page_start, page_end]
+    private IndexRecord binarySearchIndex(long key, long page_start, long page_end, int c) {
+        final long page_middle = (page_start + page_end) / 2;
+        List<IndexRecord> page = index.lookup(page_middle);
         int binarySearchResult = Collections.binarySearch(page, new IndexRecord(0L, key, 0L));
         boolean exists = binarySearchResult >= 0;
         int insertion_point = exists ? binarySearchResult : -binarySearchResult - 1;
         if (exists) {
             return page.get(binarySearchResult);
+        } else if (insertion_point == 0) {
+            return binarySearchIndex(key, page_start, page_middle - 1, c + 1);
+        } else if (insertion_point == page.size()) {
+            if (page_start == page_end) {
+                return page.get(insertion_point - 1);
+            }
+            return binarySearchIndex(key, page_middle + 1, page_end, c + 1);
         } else if (insertion_point > 0) {
             return page.get(insertion_point - 1);
-        } else if (insertion_point < page.size()) {
-            if (page_start + 1 < page_end) {
-                List<IndexRecord> np = index.lookup(page_start + 1);
-                if (np.get(0).key > key) {
-                    return page.get(insertion_point - 1);
-                } else {
-                    return np.get(0);
-                }
-            }
-            return page.get(insertion_point - 1);
-        } else {
-            final long page_middle = (page_start + page_end) / 2;
-            if (insertion_point == 0) {
-                page_end = page_middle;
-            } else if (insertion_point == page.size()) {
-                page_start = page_middle;
-            }
-            return binarySearchIndex(key, page_start, page_end);
         }
+        throw new AssertionError();
     }
 
     private IndexRecord binarySearchIndex(long key) {
-        return binarySearchIndex(key, 0, index_end_pointer);
+        return binarySearchIndex(key, 0, index_end_pointer - 1, 0);
     }
 
     private long addToOverflowArea(SeqFileRecord rec) {
@@ -332,7 +319,7 @@ public class ISAM implements AutoCloseable {
         List<SeqFileRecord> datapage = new ArrayList<>();
         List<IndexRecord> indexpage = new ArrayList<>();
         // mutable long
-        long[] nextdatapage = new long[]{0};
+        final long[] nextdatapage = new long[]{0};
         abstract class Flush {
 
             public long ptr = 0;
@@ -342,9 +329,11 @@ public class ISAM implements AutoCloseable {
         Flush flush_index = new Flush() {
             @Override
             void run() {
-                newindex.replace(ptr, new ArrayList<>(indexpage));
-                indexpage.clear();
-                ptr++;
+                if (!indexpage.isEmpty()) {
+                    newindex.replace(ptr, new ArrayList<>(indexpage));
+                    indexpage.clear();
+                    ptr++;
+                }
             }
         };
         Flush flush_data = new Flush() {
@@ -353,7 +342,11 @@ public class ISAM implements AutoCloseable {
                 if (!datapage.isEmpty()) {
                     // fix the last entry
                     SeqFileRecord lastentry = datapage.get(datapage.size() - 1);
-                    lastentry = new SeqFileRecord(lastentry.thisPage, lastentry.key, lastentry.value, nextdatapage[0] + 1);
+                    lastentry = new SeqFileRecord(
+                            lastentry.thisPage,
+                            lastentry.key,
+                            lastentry.value,
+                            (lastentry.key != sentinel_max) ? nextdatapage[0] + 1 : sentinel_max);
                     datapage.set(datapage.size() - 1, lastentry);
                     // rest
                     newdata.replace(ptr, new ArrayList<>(datapage));
@@ -363,9 +356,9 @@ public class ISAM implements AutoCloseable {
                     if (indexpage.size() == IndexRecord.recordsPerPage) {
                         flush_index.run();
                     }
+                    datapage.clear();
+                    ptr++;
                 }
-                datapage.clear();
-                ptr++;
             }
         };
         for (Iterator<SeqFileRecord> it = internalIterator(sentinel_min);
@@ -381,7 +374,6 @@ public class ISAM implements AutoCloseable {
                 nextdatapage[0] = flush_data.ptr;
             }
         }
-        nextdatapage[0] = sentinel_max;
         flush_data.run();
         flush_index.run();
         newdata.sync();

@@ -54,11 +54,7 @@ Eksperyment:
 Pamięć podręczna na 32 strony indeksów i 256 stron danych
 
 
-n          
-6250       (65+73)
-12500      (136+138)
-25000      (196+290)
-50000      (552+564)
-100000     (1920+2063)
-
-notacja (x+y) oznacza (odczytów+zapisów)
+n          Odczytów+Zapisów   Czas (s)
+25000      (3+290)            6.345
+50000      (3+564)            15.926
+100000     (4+1158)           44.223
