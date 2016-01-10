@@ -185,8 +185,7 @@ public class ISAM implements AutoCloseable {
     private boolean needToReorganize() {
         long primary_area_size = overflow_area_start_pointer;
         long overflow_area_size = overflow_area_end_pointer - overflow_area_start_pointer;
-        // TODO: stop doing float arithmetic
-        return overflow_area_size * overflow_area_size > primary_area_size;
+        return overflow_area_size > Main.log2nlz(primary_area_size);
     }
 
     // range is [page_start, page_end]
