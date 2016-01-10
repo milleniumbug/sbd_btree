@@ -190,15 +190,22 @@ public class ISAM implements AutoCloseable {
 
     // range is [page_start, page_end]
     private IndexRecord binarySearchIndex(long key, long page_start, long page_end) {
-        while (true) {
+        for (int c = 0;; c++) {
             final long page_middle = (page_start + page_end) / 2;
             List<IndexRecord> page = index.lookup(page_middle);
-            int binarySearchResult = Collections.binarySearch(page, new IndexRecord(0L, key, 0L));
-            boolean exists = binarySearchResult >= 0;
-            int insertion_point = exists ? binarySearchResult : -binarySearchResult - 1;
+            final int binarySearchResult = Collections.binarySearch(page, new IndexRecord(0L, key, 0L));
+            final boolean exists = binarySearchResult >= 0;
+            final int insertion_point = exists ? binarySearchResult : -binarySearchResult - 1;
             if (exists) {
                 return page.get(binarySearchResult);
             } else if (insertion_point == 0) {
+                if (page_middle - 1 >= 0) {
+                    List<IndexRecord> prevpage = index.lookup(page_middle - 1);
+                    IndexRecord prevrecord = prevpage.get(prevpage.size() - 1);
+                    if (prevrecord.key < key) {
+                        return prevrecord;
+                    }
+                }
                 page_end = page_middle - 1;
                 continue;
             } else if (insertion_point == page.size()) {
