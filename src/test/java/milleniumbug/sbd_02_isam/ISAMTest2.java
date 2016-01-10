@@ -48,7 +48,7 @@ public class ISAMTest2 {
     public void tearDown() {
     }
 
-    public void testInsertBiggerData(long size, String f) throws Exception {
+    public static void testInsertBiggerData(long size, String f) throws Exception {
         new File(f+"_index.sbd2").delete();
         new File(f+"_data.sbd2").delete();
         try (ISAM isam = ISAM.create(new File(f))) {
@@ -63,7 +63,7 @@ public class ISAMTest2 {
         }
     }
 
-    public void runWithPrintReadWriteCounts(ISAM isam, Consumer<ISAM> cnsmr) {
+    public static void runWithPrintReadWriteCounts(ISAM isam, Consumer<ISAM> cnsmr) {
         final long readsBefore = isam.readCount();
         final long writesBefore = isam.writeCount();
         final long startTime = System.currentTimeMillis();
@@ -73,14 +73,19 @@ public class ISAMTest2 {
         final long writesAfter = isam.writeCount();
         System.out.println("(" + (readsAfter - readsBefore) + "+" + (writesAfter - writesBefore) + "), czas: " + (endTime - startTime));
     }
-
-    @Test
-    public void testInsertBiggerData() throws Exception {
+    
+    public static void fillData() throws Exception
+    {
         testInsertBiggerData(12500, "test1");
         testInsertBiggerData(25000, "test2");
         testInsertBiggerData(50000, "test3");
         testInsertBiggerData(100000, "test4");
         testInsertBiggerData(200000, "test5");
+    }
+
+    @Test
+    public void testInsertBiggerData() throws Exception {
+        fillData();
     }
 
 }
