@@ -76,11 +76,11 @@ public class ISAMTest2 {
 
     @Test
     public void testInsertBiggerData() throws Exception {
-        testInsertBiggerData(25000, "test1");
-        testInsertBiggerData(50000, "test2");
-        testInsertBiggerData(100000, "test3");
-        testInsertBiggerData(200000, "test4");
-        testInsertBiggerData(400000, "test5");
+        testInsertBiggerData(12500, "test1");
+        testInsertBiggerData(25000, "test2");
+        testInsertBiggerData(50000, "test3");
+        testInsertBiggerData(100000, "test4");
+        testInsertBiggerData(200000, "test5");
     }
 
 }
