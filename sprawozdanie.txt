@@ -5,10 +5,15 @@ Każda baza składa się z dwóch plików:
 - `nazwabazy_data.sbd2` - gdzie zachowane jest primary area i overflow area
 
 Pojedyncza strona w pliku z danymi zawiera 86 wpisów.
-Pojedyncza strona w pliku indeksu zawiera 512 wpisów.
+Pojedyncza strona w pliku indeksu zawiera 256 wpisów.
 
 Aby nie odczytywać stron z dysku co każdą operacje, wprowadzona jest pamięć podręczna dla stron o stałym rozmiarze.
 W przypadku wypełnienia pamięci podręcznej usuwana jest najdawniej użyta strona (LRU cache)
+Ograniczeniem pamięci podręcznej jest to że w przypadku usuwania z pamięci stron, zapisywane są nawet gdy nie są zmienione - przyczyną jest to że klasa pamięci podręcznej nie śledzi co zostało zmodyfikowane a co nie, w rezultacie zapisuje do dysku nawet gdy nie musi.
+
+Używane są wartowniki do żeby umożliwić wstawianie nawet wartości które są mniejsze niż najmniejsza obecnie w bazie. 
+
+Reorganizacja następuje gdy liczba stron w overflow area osiągnie logarytm dwójkowy z ilości stron w primary area. Można też robić reorganizację na żądanie.
 
 Wskaźniki na overflow area są zastąpione wskaźnikami na kolejny element - upraszcza to kod iteracji oraz wstawiania kolejnego elementu
 
@@ -35,30 +40,64 @@ W ten sposób każdy wpis mogę traktować jak wpis w liście łączonej.
 
 Plik testowy przyjmuje polecenia w takim samym formacie jak w trybie interaktywnym, tj. plik o zawartości
 
+```
 2
 1337
 wartosc
+```
 
-dodaje do bazy wpis (1337, "wartosc")
+dodaje do bazy wpis `(1337, "wartosc")`
 
 Uruchomienie programu:
 
 utwórz bazę, a następnie ją otwórz
-java -jar ISAM.jar C nazwa_bazy
-
+`java -jar ISAM.jar C nazwa_bazy`
 otwórz istniejącą bazę
-java -jar ISAM.jar O nazwa_bazy 
+`java -jar ISAM.jar O nazwa_bazy`
 
 Eksperyment:
 
 Pamięć podręczna na 32 strony indeksów i 256 stron danych
 
+Utworzenie bazy i dodanie n wpisów:
 
+```
 n          Odczytów+Zapisów   Czas (s)
-12500(1753+1862), czas: 1978
-25000(5970+6202), czas: 4281
-50000(21407+21899), czas: 9832
-100000(76126+78172), czas: 26205
-200000(273041+356771), czas: 74064
+12500      (1753+1862)        1.978
+25000      (5970+6202)        4.281
+50000      (21407+21899)      9.832
+100000     (76126+78172)      26.205
+200000     (273041+356771)    74.064
+```
 
+Wyszukiwanie pierwszych 1000 wpisów w utworzonych bazach (bez użycia iteratora):
 
+```
+n          Odczytów+Zapisów   Czas (s)
+12500      (12+0)             0.007
+25000      (13+0)             0.005
+50000      (14+0)             0.005
+100000     (15+0)             0.006
+200000     (16+0)             0.005
+```
+
+Liczba odczytów jest zależna od ilości odczytanych kolejnych wpisów, oraz pamięci podręcznej.
+Dzięki temu że 
+Przy podwojeniu liczby elementów w bazie liczba odczytów rośnie o 1. Oznacza to że ilość odczytów jest zależna logarytmicznie od n.
+Zgadza się to z teoretycznym czasem dostępu do dowolnego rekordu w materiałach wykładowych:
+
+![Czas odwołania się do rekordu](access.png)
+
+Wyszukiwanie losowych 1000 wpisów w utworzonych bazach:
+
+```
+n          Odczytów+Zapisów   Czas (s)
+12500      (146+0)            0.114
+25000      (325+68)           0.079
+50000      (621+363)          0.080
+100000     (819+559)          0.117
+200000     (935+670)          0.108
+```
+
+Tutaj pamięć podręczna nie pomaga zbyt wiele, gdyż w przypadku losowego dostępu prawdopodobieństwo odwołania się do stron które już zostały załadowane jest niewielkie i maleje wzraz z wzrostem n.
+Tutaj możemy zaobserwować ograniczenie dot. pamięci podręcznej - wszystkie te zapisy nie są konieczne. Dzięki temu efektowi ubocznemu możemy ustalić wielkość pamięci podręcznej, poprzez odjęcie ilości zapisów od ilości odczytów.
