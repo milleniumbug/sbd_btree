@@ -168,8 +168,8 @@ public class ISAM implements AutoCloseable {
     }
 
     private long write_count = 0;
-    private long read_count = 0;    
-    
+    private long read_count = 0;
+
     private long index_end_pointer;
     private long overflow_area_start_pointer;
     private long overflow_area_end_pointer;
@@ -189,29 +189,33 @@ public class ISAM implements AutoCloseable {
     }
 
     // range is [page_start, page_end]
-    private IndexRecord binarySearchIndex(long key, long page_start, long page_end, int c) {
-        final long page_middle = (page_start + page_end) / 2;
-        List<IndexRecord> page = index.lookup(page_middle);
-        int binarySearchResult = Collections.binarySearch(page, new IndexRecord(0L, key, 0L));
-        boolean exists = binarySearchResult >= 0;
-        int insertion_point = exists ? binarySearchResult : -binarySearchResult - 1;
-        if (exists) {
-            return page.get(binarySearchResult);
-        } else if (insertion_point == 0) {
-            return binarySearchIndex(key, page_start, page_middle - 1, c + 1);
-        } else if (insertion_point == page.size()) {
-            if (page_start == page_end) {
+    private IndexRecord binarySearchIndex(long key, long page_start, long page_end) {
+        while (true) {
+            final long page_middle = (page_start + page_end) / 2;
+            List<IndexRecord> page = index.lookup(page_middle);
+            int binarySearchResult = Collections.binarySearch(page, new IndexRecord(0L, key, 0L));
+            boolean exists = binarySearchResult >= 0;
+            int insertion_point = exists ? binarySearchResult : -binarySearchResult - 1;
+            if (exists) {
+                return page.get(binarySearchResult);
+            } else if (insertion_point == 0) {
+                page_end = page_middle - 1;
+                continue;
+            } else if (insertion_point == page.size()) {
+                if (page_start == page_end) {
+                    return page.get(insertion_point - 1);
+                }
+                page_start = page_middle + 1;
+                continue;
+            } else if (insertion_point > 0) {
                 return page.get(insertion_point - 1);
             }
-            return binarySearchIndex(key, page_middle + 1, page_end, c + 1);
-        } else if (insertion_point > 0) {
-            return page.get(insertion_point - 1);
+            throw new AssertionError();
         }
-        throw new AssertionError();
     }
 
     private IndexRecord binarySearchIndex(long key) {
-        return binarySearchIndex(key, 0, index_end_pointer - 1, 0);
+        return binarySearchIndex(key, 0, index_end_pointer - 1);
     }
 
     private long addToOverflowArea(SeqFileRecord rec) {
@@ -383,7 +387,7 @@ public class ISAM implements AutoCloseable {
 
         write_count += writeCountRaw();
         read_count += readCountRaw();
-        
+
         index = newindex;
         data = newdata;
         index_end_pointer = flush_index.ptr;
@@ -452,7 +456,7 @@ public class ISAM implements AutoCloseable {
                 + index.lookup(index_end_pointer - 1).size();
         overflow_area_start_pointer = index_entries_count;
     }
-    
+
     public long writeCount() {
         return write_count + writeCountRaw();
     }
@@ -466,7 +470,7 @@ public class ISAM implements AutoCloseable {
             return 0;
         }
     }
-    
+
     public long readCount() {
         return read_count + readCountRaw();
     }
