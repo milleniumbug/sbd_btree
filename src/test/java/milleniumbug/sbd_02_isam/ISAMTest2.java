@@ -49,8 +49,8 @@ public class ISAMTest2 {
     }
 
     public void testInsertBiggerData(long size, String f) throws Exception {
-        new File(f+"_index").delete();
-        new File(f+"_data").delete();
+        new File(f+"_index.sbd2").delete();
+        new File(f+"_data.sbd2").delete();
         try (ISAM isam = ISAM.create(new File(f))) {
             System.out.print(size);
             runWithPrintReadWriteCounts(isam, i -> {

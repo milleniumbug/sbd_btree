@@ -1,8 +1,8 @@
 Projekt jest implementacją pliku indeksowo-sekwencyjnego.
 
 Każda baza składa się z dwóch plików:
-- `nazwabazy_index` - tutaj jest plik indeksu.
-- `nazwabazy_data` - gdzie zachowane jest primary area i overflow area
+- `nazwabazy_index.sbd2` - tutaj jest plik indeksu.
+- `nazwabazy_data.sbd2` - gdzie zachowane jest primary area i overflow area
 
 Pojedyncza strona w pliku z danymi zawiera 86 wpisów.
 Pojedyncza strona w pliku indeksu zawiera 512 wpisów.
@@ -55,12 +55,6 @@ Pamięć podręczna na 32 strony indeksów i 256 stron danych
 
 
 n          Odczytów+Zapisów   Czas (s)
-12500(1153+1264), czas: 2322
-25000(3384+3635), czas: 6206
-50000(9119+9630), czas: 15731
-100000(26711+28123), czas: 44169
-200000(76884+99770), czas: 122240
-
 12500(1753+1862), czas: 1978
 25000(5970+6202), czas: 4281
 50000(21407+21899), czas: 9832
