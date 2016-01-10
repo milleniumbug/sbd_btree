@@ -167,6 +167,9 @@ public class ISAM implements AutoCloseable {
         }
     }
 
+    private long write_count = 0;
+    private long read_count = 0;    
+    
     private long index_end_pointer;
     private long overflow_area_start_pointer;
     private long overflow_area_end_pointer;
@@ -379,6 +382,9 @@ public class ISAM implements AutoCloseable {
         newdata.sync();
         newindex.sync();
 
+        write_count += writeCountRaw();
+        read_count += readCountRaw();
+        
         index = newindex;
         data = newdata;
         index_end_pointer = flush_index.ptr;
@@ -447,8 +453,12 @@ public class ISAM implements AutoCloseable {
                 + index.lookup(index_end_pointer - 1).size();
         overflow_area_start_pointer = index_entries_count;
     }
-
+    
     public long writeCount() {
+        return write_count + writeCountRaw();
+    }
+
+    private long writeCountRaw() {
         try {
             IndexCache i = (IndexCache) index;
             SeqFileCache d = (SeqFileCache) data;
@@ -457,8 +467,12 @@ public class ISAM implements AutoCloseable {
             return 0;
         }
     }
-
+    
     public long readCount() {
+        return read_count + readCountRaw();
+    }
+
+    public long readCountRaw() {
         try {
             IndexCache i = (IndexCache) index;
             SeqFileCache d = (SeqFileCache) data;
