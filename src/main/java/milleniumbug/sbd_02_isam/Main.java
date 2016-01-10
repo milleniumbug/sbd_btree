@@ -7,7 +7,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Supplier;
@@ -20,7 +19,7 @@ public class Main {
         if (bits == 0) {
             return 0; // or throw exception
         }
-        return 63 - Long.numberOfLeadingZeros(bits);
+        return (Long.SIZE-1) - Long.numberOfLeadingZeros(bits);
     }
 
     public static void wykonujPolecenia(ISAM isam, Scanner s, PrintStream out) throws FileNotFoundException {
