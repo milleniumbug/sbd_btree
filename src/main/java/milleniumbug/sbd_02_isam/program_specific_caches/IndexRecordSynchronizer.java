@@ -1,4 +1,4 @@
-package milleniumbug.sbd_02_b_drzewo.program_specific_caches;
+package milleniumbug.sbd_02_isam.program_specific_caches;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,8 +11,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import milleniumbug.sbd_02_b_drzewo.ISAM;
-import milleniumbug.sbd_02_b_drzewo.generic_caches.CacheSynchronizer;
+import milleniumbug.sbd_02_isam.ISAM;
+import milleniumbug.sbd_02_isam.generic_caches.CacheSynchronizer;
 
 public class IndexRecordSynchronizer extends SerializerSynchronizer<List<ISAM.IndexRecord>> {
 

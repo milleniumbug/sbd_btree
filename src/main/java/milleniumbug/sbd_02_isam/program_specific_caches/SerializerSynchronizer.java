@@ -1,6 +1,6 @@
-package milleniumbug.sbd_02_b_drzewo.program_specific_caches;
+package milleniumbug.sbd_02_isam.program_specific_caches;
 
-import milleniumbug.sbd_02_b_drzewo.generic_caches.CacheSynchronizer;
+import milleniumbug.sbd_02_isam.generic_caches.CacheSynchronizer;
 
 public abstract class SerializerSynchronizer<V> implements CacheSynchronizer<Long,V> {
 

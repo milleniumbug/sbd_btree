@@ -3,8 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package milleniumbug.sbd_02_b_drzewo;
+package milleniumbug.sbd_02_isam;
 
+import milleniumbug.sbd_02_isam.ISAM;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;

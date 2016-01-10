@@ -1,4 +1,4 @@
-package milleniumbug.sbd_02_b_drzewo.generic_caches;
+package milleniumbug.sbd_02_isam.generic_caches;
 
 public class NoopCache<K,V> implements Cache<K,V> {
     CacheSynchronizer<K,V> behaviour;

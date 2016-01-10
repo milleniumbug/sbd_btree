@@ -3,8 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package milleniumbug.sbd_02_b_drzewo.program_specific_caches;
+package milleniumbug.sbd_02_b_isam.program_specific_caches;
 
+import milleniumbug.sbd_02_isam.program_specific_caches.FilePageSynchronizer;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import org.junit.After;

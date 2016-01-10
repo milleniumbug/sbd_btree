@@ -1,4 +1,4 @@
-package milleniumbug.sbd_02_b_drzewo.generic_caches;
+package milleniumbug.sbd_02_isam.generic_caches;
 
 import java.util.Map;
 

@@ -51,14 +51,14 @@ java -jar ISAM.jar O nazwa_bazy
 
 Eksperyment:
 
-Wpływ momentów realokacji na ilość odwołań do dysku (dodawanie n rekordów)
 Pamięć podręczna na 32 strony indeksów i 256 stron danych
-           Reorganizuj gdy           Reorganizuj gdy         Reorganizuj gdy
-n          o >= log10(p)             o >= sqrt(p)            o >= p/2
-200000    
-400000    
-800000    
-1600000   
-3200000   
+
+
+n          
+6250       (65+73)
+12500      (136+138)
+25000      (196+290)
+50000      (552+564)
+100000     (1920+2063)
 
 notacja (x+y) oznacza (odczytów+zapisów)

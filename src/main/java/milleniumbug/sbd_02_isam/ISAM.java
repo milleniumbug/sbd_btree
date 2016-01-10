@@ -1,4 +1,4 @@
-package milleniumbug.sbd_02_b_drzewo;
+package milleniumbug.sbd_02_isam;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,12 +18,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import milleniumbug.sbd_02_b_drzewo.generic_caches.Cache;
-import milleniumbug.sbd_02_b_drzewo.generic_caches.MapSynchronizer;
-import milleniumbug.sbd_02_b_drzewo.generic_caches.NoopCache;
-import milleniumbug.sbd_02_b_drzewo.program_specific_caches.FilePageSynchronizer;
-import milleniumbug.sbd_02_b_drzewo.program_specific_caches.IndexCache;
-import milleniumbug.sbd_02_b_drzewo.program_specific_caches.SeqFileCache;
+import milleniumbug.sbd_02_isam.generic_caches.Cache;
+import milleniumbug.sbd_02_isam.generic_caches.MapSynchronizer;
+import milleniumbug.sbd_02_isam.generic_caches.NoopCache;
+import milleniumbug.sbd_02_isam.program_specific_caches.FilePageSynchronizer;
+import milleniumbug.sbd_02_isam.program_specific_caches.IndexCache;
+import milleniumbug.sbd_02_isam.program_specific_caches.SeqFileCache;
 
 public class ISAM implements AutoCloseable {
 

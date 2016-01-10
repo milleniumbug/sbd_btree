@@ -1,8 +1,8 @@
-package milleniumbug.sbd_02_b_drzewo.program_specific_caches;
+package milleniumbug.sbd_02_isam.program_specific_caches;
 
 import java.io.File;
 import java.util.List;
-import milleniumbug.sbd_02_b_drzewo.ISAM;
+import milleniumbug.sbd_02_isam.ISAM;
 
 public class SeqFileCache extends ISAMCache<List<ISAM.SeqFileRecord>, SeqFileRecordSynchronizer> {
 

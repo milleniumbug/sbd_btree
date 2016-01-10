@@ -1,4 +1,4 @@
-package milleniumbug.sbd_02_b_drzewo;
+package milleniumbug.sbd_02_isam;
 
 import java.io.BufferedInputStream;
 import java.io.File;

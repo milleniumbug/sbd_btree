@@ -3,16 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package milleniumbug.sbd_02_b_drzewo.program_specific_caches;
+package milleniumbug.sbd_02_b_isam.program_specific_caches;
 
+import milleniumbug.sbd_02_isam.program_specific_caches.IndexRecordSynchronizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
-import milleniumbug.sbd_02_b_drzewo.ISAM;
-import milleniumbug.sbd_02_b_drzewo.ISAM.IndexRecord;
-import milleniumbug.sbd_02_b_drzewo.generic_caches.MapSynchronizer;
+import milleniumbug.sbd_02_isam.ISAM;
+import milleniumbug.sbd_02_isam.ISAM.IndexRecord;
+import milleniumbug.sbd_02_isam.generic_caches.MapSynchronizer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;

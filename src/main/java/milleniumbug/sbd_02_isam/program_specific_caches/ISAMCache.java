@@ -1,14 +1,14 @@
-package milleniumbug.sbd_02_b_drzewo.program_specific_caches;
+package milleniumbug.sbd_02_isam.program_specific_caches;
 
-import milleniumbug.sbd_02_b_drzewo.generic_caches.Cache;
-import milleniumbug.sbd_02_b_drzewo.generic_caches.LruCache;
+import milleniumbug.sbd_02_isam.generic_caches.Cache;
+import milleniumbug.sbd_02_isam.generic_caches.LruCache;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import milleniumbug.sbd_02_b_drzewo.generic_caches.CacheSynchronizer;
+import milleniumbug.sbd_02_isam.generic_caches.CacheSynchronizer;
 
 class ISAMCache<T, Synchronizer> implements Cache<Long, T> {
 

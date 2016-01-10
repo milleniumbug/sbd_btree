@@ -3,8 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package milleniumbug.sbd_02_b_drzewo;
+package milleniumbug.sbd_02_isam;
 
+import milleniumbug.sbd_02_isam.ISAM;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.PrintStream;
@@ -47,10 +48,10 @@ public class ISAMTest2 {
     public void tearDown() {
     }
 
-    public void testInsertBiggerData(long size) throws Exception {
-        new File("test1_index").delete();
-        new File("test1_data").delete();
-        try (ISAM isam = ISAM.create(new File("test1"))) {
+    public void testInsertBiggerData(long size, String f) throws Exception {
+        new File(f+"_index").delete();
+        new File(f+"_data").delete();
+        try (ISAM isam = ISAM.create(new File(f))) {
             System.out.print(size);
             runWithPrintReadWriteCounts(isam, i -> {
                 List<Long> keys = LongStream.range(0, size).boxed().collect(Collectors.toList());
@@ -65,20 +66,21 @@ public class ISAMTest2 {
     public void runWithPrintReadWriteCounts(ISAM isam, Consumer<ISAM> cnsmr) {
         final long readsBefore = isam.readCount();
         final long writesBefore = isam.writeCount();
+        final long startTime = System.currentTimeMillis();
         cnsmr.accept(isam);
+        final long endTime = System.currentTimeMillis();
         final long readsAfter = isam.readCount();
         final long writesAfter = isam.writeCount();
-        System.out.print("(" + (readsAfter - readsBefore) + "+" + (writesAfter - writesBefore) + ")");
+        System.out.println("(" + (readsAfter - readsBefore) + "+" + (writesAfter - writesBefore) + "), czas: " + (endTime - startTime));
     }
 
     @Test
     public void testInsertBiggerData() throws Exception {
-        testInsertBiggerData(50000);
-        testInsertBiggerData(200000);
-        testInsertBiggerData(400000);
-        testInsertBiggerData(800000);
-        testInsertBiggerData(1600000);
-        testInsertBiggerData(3200000);
+        testInsertBiggerData(6250, "test1");
+        testInsertBiggerData(12500, "test2");
+        testInsertBiggerData(25000, "test3");
+        testInsertBiggerData(50000, "test4");
+        testInsertBiggerData(100000, "test5");
     }
 
 }
