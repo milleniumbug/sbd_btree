@@ -73,6 +73,7 @@ public class ISAMTest2 {
 
     @Test
     public void testInsertBiggerData() throws Exception {
+        testInsertBiggerData(50000);
         testInsertBiggerData(200000);
         testInsertBiggerData(400000);
         testInsertBiggerData(800000);

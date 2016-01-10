@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
+import java.util.RandomAccess;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.EqualsAndHashCode;
@@ -84,11 +85,18 @@ public class ISAM implements AutoCloseable {
         }
 
         private void getKey(List<SeqFileRecord> lookup) {
-            this.currkey = lookup.stream()
-                    .sorted(Comparator.naturalOrder())
-                    .filter(x -> x.key > currkey.key)
-                    .findFirst()
-                    .get();
+            assert lookup instanceof RandomAccess;
+            lookup.sort(Comparator.naturalOrder());
+            for(int i = 0; i < lookup.size(); ++i)
+            {
+                SeqFileRecord x = lookup.get(i);
+                if(x.key > currkey.key)
+                {
+                    currkey = x;
+                    return;
+                }
+            }
+            assert false;
         }
 
         @Override
@@ -177,7 +185,7 @@ public class ISAM implements AutoCloseable {
         long primary_area_size = overflow_area_start_pointer;
         long overflow_area_size = overflow_area_end_pointer - overflow_area_start_pointer;
         // TODO: stop doing float arithmetic
-        return overflow_area_size >= Math.log10(primary_area_size);
+        return overflow_area_size * overflow_area_size > primary_area_size;
     }
 
     private IndexRecord binarySearchIndex(long key, long page_start, long page_end) {

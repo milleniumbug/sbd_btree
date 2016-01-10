@@ -16,6 +16,13 @@ import java.util.logging.Logger;
 
 public class Main {
 
+    public static int log2nlz(long bits) {
+        if (bits == 0) {
+            return 0; // or throw exception
+        }
+        return 63 - Long.numberOfLeadingZeros(bits);
+    }
+
     public static void wykonujPolecenia(ISAM isam, Scanner s, PrintStream out) throws FileNotFoundException {
         while (true) {
             final String zapytanie
