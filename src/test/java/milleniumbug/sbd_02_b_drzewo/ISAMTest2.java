@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.junit.After;
@@ -46,17 +47,37 @@ public class ISAMTest2 {
     public void tearDown() {
     }
 
-    @Test
-    public void testInsertBiggerData() throws Exception {
+    public void testInsertBiggerData(long size) throws Exception {
         new File("test1_index").delete();
         new File("test1_data").delete();
         try (ISAM isam = ISAM.create(new File("test1"))) {
-            List<Long> keys = LongStream.range(0, 50000).boxed().collect(Collectors.toList());
-            Collections.shuffle(keys, new Random(0));
-            for (Long key : keys) {
-                isam.insert(key, "asdf");
-            }
+            System.out.print(size);
+            runWithPrintReadWriteCounts(isam, i -> {
+                List<Long> keys = LongStream.range(0, size).boxed().collect(Collectors.toList());
+                Collections.shuffle(keys, new Random(0));
+                for (Long key : keys) {
+                    i.insert(key, "asdf");
+                }
+            });
         }
+    }
+
+    public void runWithPrintReadWriteCounts(ISAM isam, Consumer<ISAM> cnsmr) {
+        final long readsBefore = isam.readCount();
+        final long writesBefore = isam.writeCount();
+        cnsmr.accept(isam);
+        final long readsAfter = isam.readCount();
+        final long writesAfter = isam.writeCount();
+        System.out.print("(" + (readsAfter - readsBefore) + "+" + (writesAfter - writesBefore) + ")");
+    }
+
+    @Test
+    public void testInsertBiggerData() throws Exception {
+        testInsertBiggerData(200000);
+        testInsertBiggerData(400000);
+        testInsertBiggerData(800000);
+        testInsertBiggerData(1600000);
+        testInsertBiggerData(3200000);
     }
 
 }
