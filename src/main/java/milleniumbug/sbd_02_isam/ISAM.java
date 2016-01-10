@@ -241,11 +241,11 @@ public class ISAM implements AutoCloseable {
     }
 
     private File getDataFile(File metadata_file) {
-        return new File(metadata_file.getParent(), metadata_file.getName() + "_data");
+        return new File(metadata_file.getParent(), metadata_file.getName() + "_data.sbd2");
     }
 
     private File getIndexFile(File metadata_file) {
-        return new File(metadata_file.getParent(), metadata_file.getName() + "_index");
+        return new File(metadata_file.getParent(), metadata_file.getName() + "_index.sbd2");
     }
 
     public Optional<String> find(long key) {
